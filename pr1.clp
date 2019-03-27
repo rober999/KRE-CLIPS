@@ -4,35 +4,45 @@
 
 ;;; Template para los medicamentos tomados por el paciente
 (deftemplate Medicamentos
+	(slot patient-id (type INTEGER))
 	(slot thiopental (type SYMBOL) (allowed-values yes no) (default no))
 	(slot last_adrenaline_shot (type INTEGER) (default -1))
 	(slot 0_negative_blood_units (type INTEGER) (default 0))
 	(slot tranaxemid_acid (type SYMBOL) (allowed-values yes no) (default no))
 	(slot fibrinogen (type SYMBOL) (allowed-values yes no) (default no))
+	(slot first_0_negative_blood_unit (type INTEGER) (default -1))
 )
 
 ;;; Template para los tratamientos recibidos por el paciente
 (deftemplate Tratamientos
-	(slot tourniquet (type SYMBOL) (allowed-values yes no) (default no))
-	(slot REBOA (type SYMBOL) (allowed-values yes no) (default no))
-	(slot thoracotomy (type SYMBOL) (allowed-values yes no) (default no))
+	(slot patient-id (type INTEGER))
 	(slot last_hypotension_check (type INTEGER) (default -1))
-	(slot MTP_applied (type SYMBOL) (allowed-values yes no) (default no))
-	(slot ALS_start_time (type INTEGER) (default -1))
-	(slot ALS_stop_time (type INTEGER) (default -1))
+	(slot ALS_started (type SYMBOL) (allowed-values yes no) (default no))
+	(slot MTP_started (type SYMBOL) (allowed-values yes no) (default no))
+	(slot thoracotomy_applied (type INTEGER) (default -1))
 )
 
 ;;; Template para la ficha de paciente
 (deftemplate Paciente
 	(slot id (type INTEGER))
-	(slot Medicamentos)
-	(slot Tratamientos)
+	(slot name (type SYMBOL))
 )
 
 ;;; Declaracion de funciones --------------------------
 
+;;; Funcion para hacer una pregunta con respuesta cualquiera
+(deffunction pregunta-general (?pregunta)
+    (format t "%s " ?pregunta)
+	(bind ?respuesta (read))
+	(while (not (lexemep ?respuesta)) do
+		(format t "%s " ?pregunta)
+		(bind ?respuesta (read))
+    )
+	?respuesta
+)
+
 ;;; Funcion para hacer una pregunta con respuesta numerica unica
-(deffunction MAIN::pregunta-numerica (?pregunta ?rangini ?rangfi)
+(deffunction pregunta-numerica (?pregunta ?rangini ?rangfi)
 	(format t "%s [%d, %d] " ?pregunta ?rangini ?rangfi)
 	(bind ?respuesta (read))
 	(while (not(and(>= ?respuesta ?rangini)(<= ?respuesta ?rangfi))) do
@@ -40,6 +50,37 @@
 		(bind ?respuesta (read))
 	)
 	?respuesta
+)
+
+
+;;; Funcion para hacer una pregunta general con una serie de respuestas admitidas
+(deffunction MAIN::pregunta-opciones (?question $?allowed-values)
+   (format t "%s "?question)
+   (progn$ (?curr-value $?allowed-values)
+		(format t "[%s]" ?curr-value)
+	)
+   (printout t ": ")
+   (bind ?answer (read))
+   (if (lexemep ?answer) 
+       then (bind ?answer (lowcase ?answer)))
+   (while (not (member$ ?answer ?allowed-values)) do
+      (format t "%s "?question)
+	  (progn$ (?curr-value $?allowed-values)
+		(format t "[%s]" ?curr-value)
+	  )
+	  (printout t ": ")
+      (bind ?answer (read))
+      (if (lexemep ?answer) 
+          then (bind ?answer (lowcase ?answer))))
+   ?answer
+)
+   
+;;; Funcion para hacer una pregunta de tipo si/no
+(deffunction pregunta-si-no (?question)
+   (bind ?response (pregunta-opciones ?question y n))
+   (if (or (eq ?response yes) (eq ?response y))
+       then yes 
+       else no)
 )
 
 ;;; Declaracion de modulos ----------------------------
@@ -74,37 +115,46 @@
 	(printout t "Welcome to the Emergency Room. The status of the current patients is:" crlf)
 	(printout t crlf)
 	(focus Pacientes)
+	(assert (mas-pacientes))
 )
 
 ;;;-------------------------------------------------
 ;;;------------------PACIENTES----------------------
 ;;;-------------------------------------------------
 
-(defrule Pacientes::inicializar-historiales "Inicializamos las listas de Medicamentos y Tratamientos"
-	(declare (salience 11))
-	=>
-	(assert (Medicamentos (thiopental no) (last_adrenaline_shot -1) (0_negative_blood_units 0) (tranaxemid_acid no) (fibrinogen no)))
-	(assert (Medicamentos (thiopental yes) (last_adrenaline_shot -1) (0_negative_blood_units 0) (tranaxemid_acid no) (fibrinogen no)))
-	(assert (Medicamentos (thiopental no) (last_adrenaline_shot -1) (0_negative_blood_units 3) (tranaxemid_acid no) (fibrinogen no)))
-	(assert (Medicamentos (thiopental no) (last_adrenaline_shot 5) (0_negative_blood_units 0) (tranaxemid_acid no) (fibrinogen no)))
-	(assert (Medicamentos (thiopental no) (last_adrenaline_shot -1) (0_negative_blood_units 0) (tranaxemid_acid yes) (fibrinogen no)))
-	
-	(assert (Tratamientos (tourniquet no) (REBOA no) (thoracotomy no) (last_hypotension_check -1) (MTP_applied no) (ALS_start_time -1) (ALS_stop_time -1)))
-	(assert (Tratamientos (tourniquet yes) (REBOA no) (thoracotomy no) (last_hypotension_check -1) (MTP_applied no) (ALS_start_time -1) (ALS_stop_time -1)))
-	(assert (Tratamientos (tourniquet no) (REBOA yes) (thoracotomy no) (last_hypotension_check -1) (MTP_applied no) (ALS_start_time -1) (ALS_stop_time -1)))
-	(assert (Tratamientos (tourniquet no) (REBOA no) (thoracotomy no) (last_hypotension_check 3) (MTP_applied yes) (ALS_start_time -1) (ALS_stop_time -1)))
-	(assert (Tratamientos (tourniquet no) (REBOA no) (thoracotomy no) (last_hypotension_check -1) (MTP_applied no) (ALS_start_time 5) (ALS_stop_time -1)))
-)
-
-(defrule Pacientes::inicializar-pacientes "Inicializamos pacientes en el sistema"
+(defrule Pacientes::insertar-paciente "Pregunta al usuario la informacion sobre un paciente"
 	(declare (salience 10))
-	?med <- (Medicamentos)
-	?tra <- (Tratamientos)
+	?hecho <- (mas-pacientes)
 	=>
-	(assert (Paciente (id ?*patient-id*) (Medicamentos ?med) (Tratamientos ?tra)))
+	(bind ?nombre (pregunta-general "What is the patient's name?"))
+	(bind ?thiopental (pregunta-si-no "Have you administered Thiopental to the patient?"))
+	(bind ?adrenaline (pregunta-numerica "How long ago did you last administer adrenaline to the patient (in minutes) (-1 if not administered)?" -1 100))
+	(bind ?blood_units (pregunta-numerica "How many zero negative blood units did you administer to the patient?" 0 100))
+	(if (> ?blood_units 0) then
+		(bind ?first_blood (pregunta-numerica "How long ago did you first administer a zero negative blood unit to the patient (in minutes)?" 0 100))
+		else
+		(bind ?first_blood -1)
+	)
+	(bind ?tranaxemic (pregunta-si-no "Have you administered Tranaxemid Acid to the patient?"))
+	(bind ?fibrinogen (pregunta-si-no "Have you administered Fibrinogen to the patient?"))
+	
+	(bind ?hypotension (pregunta-numerica "How long ago did you last check the patient's hypotension (in minutes) (-1 if not checked)?" -1 100))
+	(bind ?als (pregunta-si-no "Have you started ALS on the patient?"))
+	(bind ?mtp (pregunta-si-no "Have you started MTP on the patient?"))
+	(bind ?thoracotomy (pregunta-numerica "How long ago did you applied a tourniquet, REBOA or thoracotomy technique to the patient (in minutes) (-1 if not applied)?" -1 100))
+	
+	(bind ?next (pregunta-si-no "Thank you for your patience. Do you want to keep introducing patients?"))
+	
+	;;;;;;;;;;; Fin preguntas
+	
+	(assert (Paciente (id ?*patient-id*) (name ?nombre)))
+	(assert (Medicamentos (patient-id ?*patient-id*) (thiopental ?thiopental) (last_adrenaline_shot ?adrenaline) (0_negative_blood_units ?blood_units) (tranaxemid_acid ?tranaxemic) (fibrinogen ?fibrinogen) (first_0_negative_blood_unit ?first_blood)))
+	(assert (Tratamientos (patient-id ?*patient-id*) (last_hypotension_check ?hypotension) (ALS_started ?als) (MTP_started ?mtp) (thoracotomy_applied ?thoracotomy)))
 	(bind ?*patient-id* (+ 1 ?*patient-id*))
-	(retract ?med)
-	(retract ?tra)
+	(retract ?hecho)
+	(if (eq ?next yes) then
+		(assert (mas-pacientes))
+	)
 )
 
 (defrule Pacientes::encabezado-pacientes "Mostrar el encabezado de la lista de pacientes"
@@ -116,31 +166,23 @@
 )
 
 (defrule Pacientes::listar-pacientes "Mostramos la lista de pacientes"
-	(Paciente (id ?id) (Medicamentos ?med) (Tratamientos ?tra))
-	
-	;(Medicamentos (thiopental ?med1) (last_adrenaline_shot ?med2) (0_negative_blood_units ?med3) ;(tranaxemid_acid ?med4) (fibrinogen ?med5) ?med) 
-	;(Tratamientos (tourniquet ?tra1) (REBOA ?tra2) (thoracotomy ?tra3) (last_hypotension_check ?tra4) (MTP_applied ?tra5) (ALS_start_time ?tra6) (ALS_stop_time ?tra7) ?tra)
+	(Paciente (id ?id) (name ?name))
+	(Medicamentos (patient-id ?id) (thiopental ?med1) (last_adrenaline_shot ?med2) (0_negative_blood_units ?med3) (tranaxemid_acid ?med4) (fibrinogen ?med5) (first_0_negative_blood_unit ?med6)) 
+	(Tratamientos (patient-id ?id) (last_hypotension_check ?tra1) (ALS_started ?tra2) (MTP_started ?tra3)  (thoracotomy_applied ?tra4))
 	=>
-	(printout t "Paciente: " ?id crlf)
-	;(printout t "Test: " ?med crlf)
-	(printout t "Medicamentos: " ?med crlf)
-	;(bind ?test (send ?med get-thiopental))
-	;(printout t "Test: " ?med:thiopental crlf)
-	;(send ?med print-all-slots)
-	
-	;(printout t "  - Thiopental: " (nth$ 1 ?med) crlf)
-	;(printout t "  - Time since last adrenaline shot: " ?med2 crlf)
-	;(printout t "  - 0 negative blood units administered: " ?med3 crlf)
-	;(printout t "  - Tranaxemid Acid: " ?med4 crlf)
-	;(printout t "  - Fibrinogen: " ?med5 crlf)
-	(printout t "Tratamientos: " ?tra crlf)
-	;(printout t "  - Tourniquet: " ?tra1 crlf)
-	;(printout t "  - REBOA: " ?tra2 crlf)
-	;(printout t "  - Thoracotomy: " ?tra3 crlf)
-	;(printout t "  - Time since sast Hypotension check: " ?tra4 crlf)
-	;(printout t "  - MTP Applied: " ?tra5 crlf)
-	;(printout t "  - Time since ALS started: " ?tra6 crlf)
-	;(printout t "  - Time since ALS stopped: " ?tra7 crlf)
+	(printout t "Patient: " ?name crlf)
+	(printout t "Medicine: " crlf)
+	(printout t "  - Thiopental: " ?med1 crlf)
+	(printout t "  - Time since last adrenaline shot: " ?med2 crlf)
+	(printout t "  - Zero negative blood units administered: " ?med3 crlf)
+	(printout t "  - Tranaxemid Acid: " ?med4 crlf)
+	(printout t "  - Fibrinogen: " ?med5 crlf)
+	(printout t "  - Time since first zero negative blood unit administered: " ?med6 crlf)
+	(printout t "Treatments: " crlf)
+	(printout t "  - Time since sast Hypotension check: " ?tra1 crlf)
+	(printout t "  - ALS started: " ?tra2 crlf)
+	(printout t "  - MTP started: " ?tra3 crlf)
+	(printout t "  - Tourniquet, REBOA or thoracotomy technique applied: " ?tra4 crlf)
 	(printout t crlf)
 )
 
