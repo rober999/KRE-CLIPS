@@ -222,7 +222,6 @@
 	(if (< ?siguiente_tratamiento 13) 
     	 	then (assert (aplicar_tratamiento))
 	)
-
 )
 
 (defrule Tratamientos::elegir_paciente "Elegimos el siguiente paciente a tratar"
@@ -234,24 +233,204 @@
 	(retract ?g)
 )
 
+(defrule Tratamientos::tratamiento1 "Administer thiopental"
+	?g <- (tratamiento 1)
+  ?p <- (paciente ?id)
+	?m <- (Medicamentos (patient-id ?id))
+	=>
+	; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
+	(printout t "Thiopental administered to patient " ?id "." crlf)
+	(printout t "!!! Apply Treatment number 12: Check patient's hypotension" crlf)
+	(modify ?m (thiopental yes))
+	(retract ?g)
+	(retract ?p)
+	(retract ?m)
+)
+
+(defrule Tratamientos::tratamiento2 "Administer 1mg of adrenaline"
+	?g <- (tratamiento 2)
+  ?p <- (paciente ?id)
+	?m <- (Medicamentos (patient-id ?id))
+	=>
+	(printout t "1mg of adrenaline administered to patient " ?id "." crlf)
+	(modify ?m (last_adrenaline_shot (+ last_adrenaline_shot 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?m)
+)
+
+(defrule Tratamientos::tratamiento3 "Administer 0 negative blood unit"
+	?g <- (tratamiento 3)
+  ?p <- (paciente ?id)
+	?m <- (Medicamentos (patient-id ?id))
+	=>
+	; K3: When a zero negative blood unit is administered three times 
+	; and the patient has received tranexamic acid and fibrinogen, 
+	; the clinician has to start a massive transfusion protocol (MTP).
+	(printout t "0 negative blood unit administered to patient " ?id "." crlf)
+	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	; K4: If zero negative blood is administered at time T
+	; but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered,
+	; then the missing drugs have to be administered.
+	(printout t "!!! IF zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered," crlf)
+	(printout t "!!! Apply ONE of BOTH Treatments:" crlf)
+	(printout t "!!! - Treatment number 4: Administer tranaxemic acid" crlf)
+	(printout t "!!! - Treatment number 5: Administer fibrinogen" crlf)	
+	(modify ?m (0_negative_blood_units (+ 0_negative_blood_units 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?m)
+)
+
+(defrule Tratamientos::tratamiento4 "Administer tranaxemic acid"
+	?g <- (tratamiento 4)
+  ?p <- (paciente ?id)
+	?m <- (Medicamentos (patient-id ?id))
+	=>
+	; K3: When a zero negative blood unit is administered three times 
+	; and the patient has received tranexamic acid and fibrinogen, 
+	; the clinician has to start a massive transfusion protocol (MTP).
+	(printout t "Tranaxemic acid administered to patient " ?id "." crlf)
+	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	(modify ?m (tranaxemic yes))
+	(retract ?g)
+	(retract ?p)
+	(retract ?m)
+)
+
+(defrule Tratamientos::tratamiento5 "Administer fibrinogen"
+	?g <- (tratamiento 5)
+  ?p <- (paciente ?id)
+	?m <- (Medicamentos (patient-id ?id))
+	=>
+	; K3: When a zero negative blood unit is administered three times 
+	; and the patient has received tranexamic acid and fibrinogen, 
+	; the clinician has to start a massive transfusion protocol (MTP).
+	(printout t "Fibrinogen administered to patient " ?id "." crlf)
+	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	(modify ?m (fibrinogen yes))
+	(retract ?g)
+	(retract ?p)
+	(retract ?m)
+)
+
+(defrule Tratamientos::tratamiento6 "Apply tourniquet"
+	?g <- (tratamiento 6)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
+	; the clinician must be notified every 15 minutes about the time passed since the application.
+	(printout t "Tourniquet applied to patient " ?id "." crlf)
+	(printout t "!!! Notify every 15 minutes about the time passed since the application of tourniquet." crlf)	
+	(modify ?t (thoracotomy_applied (+ thoracotomy_applied 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento7 "Apply REBOA"
+	?g <- (tratamiento 7)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
+	; the clinician must be notified every 15 minutes about the time passed since the application.
+	(printout t "REBOA applied to patient " ?id "." crlf)
+	(printout t "!!! Notify every 15 minutes about the time passed since the application of REBOA." crlf)	
+	(modify ?t (thoracotomy_applied (+ thoracotomy_applied 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento8 "Apply thoracotomy technique"
+	?g <- (tratamiento 8)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
+	; the clinician must be notified every 15 minutes about the time passed since the application.
+	(printout t "Thoracotomy technique applied to patient " ?id "." crlf)
+	(printout t "!!! Notify every 15 minutes about the time passed since the application of Thoracotomy technique." crlf)	
+	(modify ?t (thoracotomy_applied (+ thoracotomy_applied 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento9 "Apply MTP"
+	?g <- (tratamiento 9)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	(printout t "MTP applied to patient " ?id "." crlf)
+	(modify ?t (MTP_started yes))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento10 "Start ALS"
+	?g <- (tratamiento 10)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	; K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
+	(printout t "ALS started for patient " ?id "." crlf)
+	(printout t "!!! Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes." crlf)
+	(modify ?t (ALS_started yes))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento11 "Stop ALS"
+	?g <- (tratamiento 11)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	(printout t "ALS stopped for patient " ?id "." crlf)
+	(modify ?t (ALS_started no))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento12 "Check patient hypotension"
+	?g <- (tratamiento 12)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	(printout t "Hypotension checked for patient " ?id "." crlf)
+	(modify ?t (last_hypotension_check (+ last_hypotension_check 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
+
+(defrule Tratamientos::tratamiento13 "Wait 1 minute"
+	?g <- (tratamiento 13)
+  ?p <- (paciente ?id)
+	?t <- (Tratamientos (patient-id ?id))
+	=>
+	(printout t "Wait 1 minute " ?id "." crlf)
+	(printout t "-- we increase time that has passed for last_hypotension_check and first_0_negative_blood_unit --" ?id "." crlf)
+	(modify ?t (last_adrenaline_shot (+ last_adrenaline_shot 1)))
+	(modify ?t (first_0_negative_blood_unit (+ first_0_negative_blood_unit 1)))
+	(retract ?g)
+	(retract ?p)
+	(retract ?t)
+)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+; RULES
+; xx K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
+; xx K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
+; xx K3: When a zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen, the clinician has to start a massive transfusion protocol (MTP).
+; xx K4: If zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered, then the missing drugs have to be administered1.
+; xx K5: When a tourniquet, REBOA, or thoracotomy technique is applied, the clinician must be notified every 15 minutes about the time passed since the application.
 
