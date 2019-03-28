@@ -171,6 +171,7 @@
 	(Tratamientos (patient-id ?id) (last_hypotension_check ?tra1) (ALS_started ?tra2) (MTP_started ?tra3)  (thoracotomy_applied ?tra4))
 	=>
 	(printout t "Patient: " ?name crlf)
+	(printout t "Patient ID: " ?id crlf)
 	(printout t "Medicine: " crlf)
 	(printout t "  - Thiopental: " ?med1 crlf)
 	(printout t "  - Time since last adrenaline shot: " ?med2 crlf)
@@ -228,7 +229,7 @@
 	(declare (salience 9))
 	?g <- (aplicar_tratamiento)
 	=>
-	(bind ?siguiente_paciente (pregunta-numerica "To which patient should we apply the selected treatment?" 1 50))
+	(bind ?siguiente_paciente (pregunta-numerica "To which patient should we apply the selected treatment?" 1 (- ?*patient-id* 1)))
 	(assert (paciente ?siguiente_paciente))
 )
 
