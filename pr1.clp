@@ -231,6 +231,7 @@
 	=>
 	(bind ?siguiente_paciente (pregunta-numerica "To which patient should we apply the selected treatment?" 1 (- ?*patient-id* 1)))
 	(assert (paciente ?siguiente_paciente))
+	(retract ?g)
 )
 
 
