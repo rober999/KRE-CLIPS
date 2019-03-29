@@ -254,6 +254,7 @@
 	(modify ?m (thiopental yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento2 "Administer 1mg of adrenaline"
@@ -265,6 +266,7 @@
 	(modify ?m (last_adrenaline_shot 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento3 "Administer 0 negative blood unit"
@@ -291,6 +293,7 @@
 	)
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento4 "Administer tranaxemic acid"
@@ -307,6 +310,7 @@
 	(modify ?m (tranaxemid_acid yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento5 "Administer fibrinogen"
@@ -323,6 +327,7 @@
 	(modify ?m (fibrinogen yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento6 "Apply tourniquet"
@@ -337,6 +342,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento7 "Apply REBOA"
@@ -351,6 +357,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento8 "Apply thoracotomy technique"
@@ -365,6 +372,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento9 "Apply MTP"
@@ -376,6 +384,7 @@
 	(modify ?t (MTP_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento10 "Start ALS"
@@ -389,6 +398,7 @@
 	(modify ?t (ALS_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento11 "Stop ALS"
@@ -400,6 +410,7 @@
 	(modify ?t (ALS_started no))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento12 "Check patient hypotension"
@@ -411,6 +422,7 @@
 	(modify ?t (last_hypotension_check 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Alerta)
 )
 
 (defrule Tratamientos::tratamiento13 "Wait 1 minute"
@@ -443,7 +455,6 @@
 	=>
 	(retract ?g)
 	(focus Alerta)
-
 )
 
 (defrule Alerta::K1 "Rule K1"
@@ -453,7 +464,7 @@
 	=>
 	;(printout t "hola" crlf)
 	(if (eq ?thio yes)
-			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf))
+			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf)
 	)
 	(retract ?p)
 	(retract ?m)
