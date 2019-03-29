@@ -250,7 +250,7 @@
 	=>
 	; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
 	(printout t "Thiopental administered to patient " ?id "." crlf)
-	(printout t "!!! Apply Treatment number 12: Check patient's hypotension" crlf)
+	;(printout t "!!! Apply Treatment number 12: Check patient's hypotension" crlf)
 	(modify ?m (thiopental yes))
 	(retract ?g)
 	(retract ?p)
@@ -278,16 +278,16 @@
 	; and the patient has received tranexamic acid and fibrinogen, 
 	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "0 negative blood unit administered to patient " ?id "." crlf)
-	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
 	; K4: If zero negative blood is administered at time T
 	; but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered,
 	; then the missing drugs have to be administered.
-	(printout t "!!! IF zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered," crlf)
-	(printout t "!!! Apply ONE of BOTH Treatments:" crlf)
-	(printout t "!!! - Treatment number 4: Administer tranaxemic acid" crlf)
-	(printout t "!!! - Treatment number 5: Administer fibrinogen" crlf)	
-	(modify ?m (0_negative_blood_units (+ 1 ?b)))
+	;(printout t "!!! IF zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered," crlf)
+	;(printout t "!!! Apply ONE of BOTH Treatments:" crlf)
+	;(printout t "!!! - Treatment number 4: Administer tranaxemic acid" crlf)
+	;(printout t "!!! - Treatment number 5: Administer fibrinogen" crlf)	
+	;(modify ?m (0_negative_blood_units (+ 1 ?b)))
 	(if (< ?f 0) 
     	 	then (modify ?m (first_0_negative_blood_unit 0))
 	)
@@ -305,8 +305,8 @@
 	; and the patient has received tranexamic acid and fibrinogen, 
 	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "Tranaxemic acid administered to patient " ?id "." crlf)
-	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
 	(modify ?m (tranaxemid_acid yes))
 	(retract ?g)
 	(retract ?p)
@@ -322,8 +322,8 @@
 	; and the patient has received tranexamic acid and fibrinogen, 
 	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "Fibrinogen administered to patient " ?id "." crlf)
-	(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
+	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
+	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
 	(modify ?m (fibrinogen yes))
 	(retract ?g)
 	(retract ?p)
@@ -338,7 +338,7 @@
 	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
 	; the clinician must be notified every 15 minutes about the time passed since the application.
 	(printout t "Tourniquet applied to patient " ?id "." crlf)
-	(printout t "!!! Notify every 15 minutes about the time passed since the application of tourniquet." crlf)	
+	;(printout t "!!! Notify every 15 minutes about the time passed since the application of tourniquet." crlf)	
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
@@ -353,7 +353,7 @@
 	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
 	; the clinician must be notified every 15 minutes about the time passed since the application.
 	(printout t "REBOA applied to patient " ?id "." crlf)
-	(printout t "!!! Notify every 15 minutes about the time passed since the application of REBOA." crlf)	
+	;(printout t "!!! Notify every 15 minutes about the time passed since the application of REBOA." crlf)	
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
@@ -368,7 +368,7 @@
 	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
 	; the clinician must be notified every 15 minutes about the time passed since the application.
 	(printout t "Thoracotomy technique applied to patient " ?id "." crlf)
-	(printout t "!!! Notify every 15 minutes about the time passed since the application of Thoracotomy technique." crlf)	
+	;(printout t "!!! Notify every 15 minutes about the time passed since the application of Thoracotomy technique." crlf)	
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
@@ -394,7 +394,7 @@
 	=>
 	; K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
 	(printout t "ALS started for patient " ?id "." crlf)
-	(printout t "!!! Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes." crlf)
+	;(printout t "!!! Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes." crlf)
 	(modify ?t (ALS_started yes))
 	(retract ?g)
 	(retract ?p)
@@ -457,18 +457,48 @@
 	(focus Alerta)
 )
 
+;;; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
+
 (defrule Alerta::K1 "Rule K1"
 	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(thiopental ?thio))
 	=>
-	;(printout t "hola" crlf)
 	(if (eq ?thio yes)
 			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf)
 	)
 	(retract ?p)
 	(retract ?m)
 )	
+
+;;; K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
+(defrule Alerta::K2 "Rule K2"
+	(declare (salience 10))
+	?p <- (Paciente (id ?id))
+	?t <- (Tratamientos (patient-id ?id)(ALS_started ?als))
+	=>
+	(if (eq ?als yes)
+			then (printout t "!!! ALERT: Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes to patient " ?id "." crlf)
+	)
+	(retract ?p)
+	(retract ?t)
+)	
+
+
+;;; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
+;;; the clinician must be notified every 15 minutes about the time passed since the application.
+(defrule Alerta::K5 "Rule K5"
+	(declare (salience 10))
+	?p <- (Paciente (id ?id))
+	?t <- (Tratamientos (patient-id ?id)(thoracotomy_applied ?th))
+	=>
+	(if (eq ?th 0)
+			then (printout t "!!! ALERT: Notify every 15 minutes about the time passed since the application of tourniquet to patient ." ?id "." crlf)
+	)
+	(retract ?p)
+	(retract ?t)
+)	
+
 
 ; RULES
 ; xx K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
