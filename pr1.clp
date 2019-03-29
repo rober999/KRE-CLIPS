@@ -453,7 +453,7 @@
 	=>
 	;(printout t "hola" crlf)
 	(if (eq ?thio yes)
-			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf))
+			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf)
 	)
 	(retract ?p)
 	(retract ?m)
