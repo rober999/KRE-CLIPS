@@ -219,8 +219,11 @@
 	(printout t crlf)
 	(bind ?siguiente_tratamiento (pregunta-numerica "Next treatment?" 1 13))
 	(assert (tratamiento ?siguiente_tratamiento))
-	(if (< ?siguiente_tratamiento 13) 
-    	 	then (assert (aplicar_tratamiento))
+	(if (neq ?siguiente_tratamiento 13) 
+		then 
+		(assert (aplicar_tratamiento))
+		else
+		(assert (actualizar_pacientes (- ?*patient-id* 1)))
 	)
 )
 
@@ -405,7 +408,8 @@
 
 (defrule Tratamientos::tratamiento13 "Wait 1 minute"
 	?g <- (tratamiento 13)
-	?p <- (paciente ?id)
+	?act <- (actualizar_pacientes ?id)
+	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(last_adrenaline_shot ?a)(first_0_negative_blood_unit ?b))
 	?t <- (Tratamientos (patient-id ?id)(thoracotomy_applied ?th))
 	=>
@@ -420,10 +424,18 @@
 	(if (> ?th -1) 
     	then (modify ?t (thoracotomy_applied (+ ?th 1)))
 	)
-	(retract ?g)
-	(retract ?p)
+	(retract ?act)
+	(if (> ?id 1) 
+    	then (assert (actualizar_pacientes (- ?id 1)))
+	)
 )
 
+(defrule Tratamientos::fin_esperar_minuto "Finish Waiting"
+	(declare (salience -5))
+	?g <- (tratamiento 13)
+	=>
+	(retract ?g)
+)
 
 ; RULES
 ; xx K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
