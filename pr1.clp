@@ -96,10 +96,15 @@
 	(export ?ALL)
 )
 
+;;; Modulo del menu de tratamientos
+(defmodule Menu
+	(import Pacientes ?ALL)
+	(export ?ALL)
+)
+
 ;;; Modulo de tratado de pacientes
 (defmodule Tratamientos
-	(import MAIN ?ALL)
-	(import Pacientes deftemplate ?ALL)
+	(import Menu ?ALL)
 	(export ?ALL)
 )
 
@@ -197,15 +202,15 @@
 (defrule Pacientes::pasar-a-tratamientos "Pasamos a elegir tratamientos"
 	(declare (salience -10))
 	=>
-	(focus Tratamientos)
+	(focus Menu)
 )
 
 ;;;-------------------------------------------------
-;;;-----------------TRATAMIENTOS--------------------
+;;;---------------------MENU------------------------
 ;;;-------------------------------------------------
 
-(defrule Tratamientos::elegir_tratamiento "Elegimos el siguiente tratamiento a ejecutar"
-	(declare (salience 10))
+(defrule Menu::elegir_tratamiento "Elegimos el siguiente tratamiento a ejecutar"
+	(not (aplicar_tratamiento))
 	=>
 	(printout t "====================================================================" crlf)
   	(printout t "=                         Treatment list:                          =" crlf)
@@ -223,37 +228,63 @@
 	(printout t "11 - Stop ALS" crlf)
 	(printout t "12 - Check patient hypotension" crlf)
 	(printout t "13 - Wait 1 minute" crlf)
+	(printout t "14 - (TBD)Show list of patients" crlf)
+	(printout t "15 - Stop system" crlf)
 	(printout t crlf)
-	(bind ?siguiente_tratamiento (pregunta-numerica "Next treatment?" 1 13))
-	(assert (tratamiento ?siguiente_tratamiento))
-	(if (neq ?siguiente_tratamiento 13) 
+	(bind ?siguiente_tratamiento (pregunta-numerica "Next treatment?" 1 15))
+	(if (< ?siguiente_tratamiento 13) 
 		then 
+		(assert (tratamiento ?siguiente_tratamiento))
 		(assert (aplicar_tratamiento))
 		else
+		(focus Tratamientos)
 		(assert (actualizar_pacientes (- ?*patient-id* 1)))
+		(assert (tratamiento ?siguiente_tratamiento))
 	)
 )
 
-(defrule Tratamientos::elegir_paciente "Elegimos el siguiente paciente a tratar"
-	(declare (salience 9))
+(defrule Menu::elegir_paciente "Elegimos el siguiente paciente a tratar"
 	?g <- (aplicar_tratamiento)
+	?t <- (tratamiento ?siguiente_tratamiento)
 	=>
 	(bind ?siguiente_paciente (pregunta-numerica "To which patient should we apply the selected treatment?" 1 (- ?*patient-id* 1)))
-	(assert (paciente ?siguiente_paciente))
 	(retract ?g)
+	(retract ?t)
+	(focus Tratamientos)
+	(assert (tratamiento ?siguiente_tratamiento))
+	(assert (paciente ?siguiente_paciente))
 )
+
+(defrule Menu::show_patients "Mostramos la lista de pacientes"
+	?g <- (tratamiento 14)
+	=>
+	(retract ?g)
+	(focus Pacientes)
+)
+
+(defrule Menu::stop_execution "Paramos el sistema"
+	?g <- (tratamiento 15)
+	=>
+	(retract ?g)
+	(halt)
+)
+
+
+;;;-------------------------------------------------
+;;;-----------------TRATAMIENTOS--------------------
+;;;-------------------------------------------------
 
 (defrule Tratamientos::tratamiento1 "Administer thiopental"
 	?g <- (tratamiento 1)
 	?p <- (paciente ?id)
 	?m <- (Medicamentos (patient-id ?id))
 	=>
-	; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
 	(printout t "Thiopental administered to patient " ?id "." crlf)
-	;(printout t "!!! Apply Treatment number 12: Check patient's hypotension" crlf)
 	(modify ?m (thiopental yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?m (thiopental yes))
 	(focus Alerta)
 )
 
@@ -263,9 +294,10 @@
 	?m <- (Medicamentos (patient-id ?id))
 	=>
 	(printout t "1mg of adrenaline administered to patient " ?id "." crlf)
-	(modify ?m (last_adrenaline_shot 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?m (last_adrenaline_shot 0))
 	(focus Alerta)
 )
 
@@ -274,25 +306,14 @@
 	?p <- (paciente ?id)
 	?m <- (Medicamentos (patient-id ?id)(0_negative_blood_units ?b)(first_0_negative_blood_unit ?f))
 	=>
-	; K3: When a zero negative blood unit is administered three times 
-	; and the patient has received tranexamic acid and fibrinogen, 
-	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "0 negative blood unit administered to patient " ?id "." crlf)
-	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
-	; K4: If zero negative blood is administered at time T
-	; but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered,
-	; then the missing drugs have to be administered.
-	;(printout t "!!! IF zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered," crlf)
-	;(printout t "!!! Apply ONE of BOTH Treatments:" crlf)
-	;(printout t "!!! - Treatment number 4: Administer tranaxemic acid" crlf)
-	;(printout t "!!! - Treatment number 5: Administer fibrinogen" crlf)	
-	;(modify ?m (0_negative_blood_units (+ 1 ?b)))
-	(if (< ?f 0) 
-    	 	then (modify ?m (first_0_negative_blood_unit 0))
-	)
 	(retract ?g)
 	(retract ?p)
+	(if (< ?f 0) 
+		then 
+		(focus Menu)
+		(modify ?m (first_0_negative_blood_unit 0))
+	)
 	(focus Alerta)
 )
 
@@ -301,15 +322,11 @@
 	?p <- (paciente ?id)
 	?m <- (Medicamentos (patient-id ?id))
 	=>
-	; K3: When a zero negative blood unit is administered three times 
-	; and the patient has received tranexamic acid and fibrinogen, 
-	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "Tranaxemic acid administered to patient " ?id "." crlf)
-	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
-	(modify ?m (tranaxemid_acid yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?m (tranaxemid_acid yes))
 	(focus Alerta)
 )
 
@@ -318,15 +335,11 @@
 	?p <- (paciente ?id)
 	?m <- (Medicamentos (patient-id ?id))
 	=>
-	; K3: When a zero negative blood unit is administered three times 
-	; and the patient has received tranexamic acid and fibrinogen, 
-	; the clinician has to start a massive transfusion protocol (MTP).
 	(printout t "Fibrinogen administered to patient " ?id "." crlf)
-	;(printout t "!!! IF zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen," crlf)
-	;(printout t "!!! Apply Treatment number 9: Start a massive transfusion protocol (MTP)" crlf)
-	(modify ?m (fibrinogen yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?m (fibrinogen yes))
 	(focus Alerta)
 )
 
@@ -335,13 +348,11 @@
 	?p <- (paciente ?id)
 	?t <- (Tratamientos (patient-id ?id))
 	=>
-	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
-	; the clinician must be notified every 15 minutes about the time passed since the application.
-	(printout t "Tourniquet applied to patient " ?id "." crlf)
-	;(printout t "!!! Notify every 15 minutes about the time passed since the application of tourniquet." crlf)	
-	(modify ?t (thoracotomy_applied 0))
+	(printout t "Tourniquet applied to patient " ?id "." crlf)	
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (thoracotomy_applied 0))
 	(focus Alerta)
 )
 
@@ -350,13 +361,11 @@
 	?p <- (paciente ?id)
 	?t <- (Tratamientos (patient-id ?id))
 	=>
-	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
-	; the clinician must be notified every 15 minutes about the time passed since the application.
-	(printout t "REBOA applied to patient " ?id "." crlf)
-	;(printout t "!!! Notify every 15 minutes about the time passed since the application of REBOA." crlf)	
-	(modify ?t (thoracotomy_applied 0))
+	(printout t "REBOA applied to patient " ?id "." crlf)	
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (thoracotomy_applied 0))
 	(focus Alerta)
 )
 
@@ -365,13 +374,11 @@
 	?p <- (paciente ?id)
 	?t <- (Tratamientos (patient-id ?id))
 	=>
-	; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
-	; the clinician must be notified every 15 minutes about the time passed since the application.
 	(printout t "Thoracotomy technique applied to patient " ?id "." crlf)
-	;(printout t "!!! Notify every 15 minutes about the time passed since the application of Thoracotomy technique." crlf)	
-	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (thoracotomy_applied 0))
 	(focus Alerta)
 )
 
@@ -381,9 +388,10 @@
 	?t <- (Tratamientos (patient-id ?id))
 	=>
 	(printout t "MTP applied to patient " ?id "." crlf)
-	(modify ?t (MTP_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (MTP_started yes))
 	(focus Alerta)
 )
 
@@ -392,12 +400,11 @@
 	?p <- (paciente ?id)
 	?t <- (Tratamientos (patient-id ?id))
 	=>
-	; K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
 	(printout t "ALS started for patient " ?id "." crlf)
-	;(printout t "!!! Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes." crlf)
-	(modify ?t (ALS_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (ALS_started yes))
 	(focus Alerta)
 )
 
@@ -407,9 +414,10 @@
 	?t <- (Tratamientos (patient-id ?id))
 	=>
 	(printout t "ALS stopped for patient " ?id "." crlf)
-	(modify ?t (ALS_started no))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (ALS_started no))
 	(focus Alerta)
 )
 
@@ -419,9 +427,10 @@
 	?t <- (Tratamientos (patient-id ?id))
 	=>
 	(printout t "Hypotension checked for patient " ?id "." crlf)
-	(modify ?t (last_hypotension_check 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?t (last_hypotension_check 0))
 	(focus Alerta)
 )
 
@@ -434,6 +443,7 @@
 	=>
 	(printout t "Wait 1 minute " ?id "." crlf)
 	(printout t "-- we increase time that has passed for last_hypotension_check and first_0_negative_blood_unit --" ?id "." crlf)
+	(focus Menu)
 	(if (> ?a -1) 
     	then (modify ?m (last_adrenaline_shot (+ ?a 1)))
 	)
@@ -443,22 +453,29 @@
 	(if (> ?th -1) 
     	then (modify ?t (thoracotomy_applied (+ ?th 1)))
 	)
+	(focus Tratamientos)
 	(retract ?act)
 	(if (> ?id 1) 
     	then (assert (actualizar_pacientes (- ?id 1)))
+		else (assert (fin_espera))
 	)
 )
 
 (defrule Tratamientos::fin_esperar_minuto "Finish Waiting"
-	(declare (salience -5))
 	?g <- (tratamiento 13)
+	?f <- (fin_espera)
 	=>
+	(printout t "Yoho-hoho." crlf)
 	(retract ?g)
+	(retract ?f)
 	(focus Alerta)
 )
 
-;;; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
+;;;-------------------------------------------------
+;;;--------------------ALERTA-----------------------
+;;;-------------------------------------------------
 
+;;; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
 (defrule Alerta::K1 "Rule K1"
 	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(thiopental ?thio))
@@ -510,7 +527,7 @@
 	(if (> ?th 0)
 			then (printout t "!!! ALERT K5: Notify every 15 minutes about the time passed since the application of tourniquet to patient ." ?id "." crlf)
 	)
-)	
+)
 
 
 ; RULES
