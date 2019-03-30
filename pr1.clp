@@ -96,10 +96,21 @@
 	(export ?ALL)
 )
 
+;;; Modulo del menu de tratamientos
+(defmodule Menu
+	(import Pacientes ?ALL)
+	(export ?ALL)
+)
+
 ;;; Modulo de tratado de pacientes
 (defmodule Tratamientos
-	(import MAIN ?ALL)
-	(import Pacientes deftemplate ?ALL)
+	(import Menu ?ALL)
+	(export ?ALL)
+)
+
+;;; Modulo de mostrado de avisos
+(defmodule Avisos
+	(import Tratamientos ?ALL)
 	(export ?ALL)
 )
 
@@ -190,15 +201,15 @@
 (defrule Pacientes::pasar-a-tratamientos "Pasamos a elegir tratamientos"
 	(declare (salience -10))
 	=>
-	(focus Tratamientos)
+	(focus Menu)
 )
 
 ;;;-------------------------------------------------
-;;;-----------------TRATAMIENTOS--------------------
+;;;---------------------MENU------------------------
 ;;;-------------------------------------------------
 
-(defrule Tratamientos::elegir_tratamiento "Elegimos el siguiente tratamiento a ejecutar"
-	(declare (salience 10))
+(defrule Menu::elegir_tratamiento "Elegimos el siguiente tratamiento a ejecutar"
+	(not (aplicar_tratamiento))
 	=>
 	(printout t "====================================================================" crlf)
   	(printout t "=                         Treatment list:                          =" crlf)
@@ -218,23 +229,33 @@
 	(printout t "13 - Wait 1 minute" crlf)
 	(printout t crlf)
 	(bind ?siguiente_tratamiento (pregunta-numerica "Next treatment?" 1 13))
-	(assert (tratamiento ?siguiente_tratamiento))
 	(if (neq ?siguiente_tratamiento 13) 
 		then 
+		(assert (tratamiento ?siguiente_tratamiento))
 		(assert (aplicar_tratamiento))
 		else
+		(focus Tratamientos)
 		(assert (actualizar_pacientes (- ?*patient-id* 1)))
+		(assert (tratamiento ?siguiente_tratamiento))
 	)
 )
 
-(defrule Tratamientos::elegir_paciente "Elegimos el siguiente paciente a tratar"
-	(declare (salience 9))
+(defrule Menu::elegir_paciente "Elegimos el siguiente paciente a tratar"
 	?g <- (aplicar_tratamiento)
+	?t <- (tratamiento ?siguiente_tratamiento)
 	=>
 	(bind ?siguiente_paciente (pregunta-numerica "To which patient should we apply the selected treatment?" 1 (- ?*patient-id* 1)))
-	(assert (paciente ?siguiente_paciente))
+	(printout t "Ok. Hola." crlf)
 	(retract ?g)
+	(retract ?t)
+	(focus Tratamientos)
+	(assert (tratamiento ?siguiente_tratamiento))
+	(assert (paciente ?siguiente_paciente))
 )
+
+;;;-------------------------------------------------
+;;;-----------------TRATAMIENTOS--------------------
+;;;-------------------------------------------------
 
 (defrule Tratamientos::tratamiento1 "Administer thiopental"
 	?g <- (tratamiento 1)
@@ -244,9 +265,11 @@
 	; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
 	(printout t "Thiopental administered to patient " ?id "." crlf)
 	(printout t "!!! Apply Treatment number 12: Check patient's hypotension" crlf)
-	(modify ?m (thiopental yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Menu)
+	(modify ?m (thiopental yes))
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento2 "Administer 1mg of adrenaline"
@@ -258,6 +281,7 @@
 	(modify ?m (last_adrenaline_shot 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento3 "Administer 0 negative blood unit"
@@ -284,6 +308,7 @@
 	)
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento4 "Administer tranaxemic acid"
@@ -300,6 +325,7 @@
 	(modify ?m (tranaxemid_acid yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento5 "Administer fibrinogen"
@@ -316,6 +342,7 @@
 	(modify ?m (fibrinogen yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento6 "Apply tourniquet"
@@ -330,6 +357,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento7 "Apply REBOA"
@@ -344,6 +372,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento8 "Apply thoracotomy technique"
@@ -358,6 +387,7 @@
 	(modify ?t (thoracotomy_applied 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento9 "Apply MTP"
@@ -369,6 +399,7 @@
 	(modify ?t (MTP_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento10 "Start ALS"
@@ -382,6 +413,7 @@
 	(modify ?t (ALS_started yes))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento11 "Stop ALS"
@@ -393,6 +425,7 @@
 	(modify ?t (ALS_started no))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento12 "Check patient hypotension"
@@ -404,6 +437,7 @@
 	(modify ?t (last_hypotension_check 0))
 	(retract ?g)
 	(retract ?p)
+	(focus Avisos)
 )
 
 (defrule Tratamientos::tratamiento13 "Wait 1 minute"
@@ -428,13 +462,29 @@
 	(if (> ?id 1) 
     	then (assert (actualizar_pacientes (- ?id 1)))
 	)
+	(assert (fin_espera))
 )
 
 (defrule Tratamientos::fin_esperar_minuto "Finish Waiting"
-	(declare (salience -5))
 	?g <- (tratamiento 13)
+	?f <- (fin_espera)
 	=>
 	(retract ?g)
+	(retract ?f)
+	(focus Avisos)
+)
+
+;;;-------------------------------------------------
+;;;-------------------AVISOS------------------------
+;;;-------------------------------------------------
+
+(defrule Avisos::test "test"
+	?p <- (Paciente (id ?id))
+	?m <- (Medicamentos (patient-id ?id)(thiopental ?thio)(last_adrenaline_shot ?a)(first_0_negative_blood_unit ?b))
+	?t <- (Tratamientos (patient-id ?id)(thoracotomy_applied ?th))
+	=>
+	(printout t "Paciente "?id" thiopental: " ?thio crlf)
+	(printout t "Aviso de que no hay avisos!!" crlf)
 )
 
 ; RULES
