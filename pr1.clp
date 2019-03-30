@@ -460,71 +460,56 @@
 ;;; K1: Whenever thiopental is administered, the clinician must pay attention to patient's hypotension.
 
 (defrule Alerta::K1 "Rule K1"
-	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(thiopental ?thio))
 	=>
 	(if (eq ?thio yes)
-			then (printout t "!!! ALERT: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf)
+			then (printout t "!!! ALERT K1: Apply Treatment number 12: Check hypotension to patient " ?id "." crlf)
 	)
-	(retract ?p)
-	(retract ?m)
 )	
 
 ;;; K2: When advanced life support (ALS) is started, the clinician has to administer 1 mg of adrenaline every 3 minutes.
 (defrule Alerta::K2 "Rule K2"
-	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?t <- (Tratamientos (patient-id ?id)(ALS_started ?als))
 	=>
 	(if (eq ?als yes)
-			then (printout t "!!! ALERT: Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes to patient " ?id "." crlf)
+			then (printout t "!!! ALERT K2: Apply Treatment number 2 every 3 minutes: Administer 1 mg of adrenaline every 3 minutes to patient " ?id "." crlf)
 	)
-	(retract ?p)
-	(retract ?t)
 )
 
 ;;; K3: When a zero negative blood unit is administered three times and the patient has received tranexamic acid and fibrinogen, the clinician has to start a massive transfusion protocol (MTP).
 (defrule Alerta::K3 "Rule K3"
-	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(0_negative_blood_units ?znegative)(tranaxemid_acid ?tra)(fibrinogen ?fib))
 	=>
 	(if (and (eq ?tra yes)(eq ?fib yes)(>= ?znegative 3))
-			then (printout t "!!! ALERT: Apply Treatment number 9: Apply a Massive Transfusion Protocol to patient " ?id "." crlf)
+			then (printout t "!!! ALERT K3: Apply Treatment number 9: Apply a Massive Transfusion Protocol to patient " ?id "." crlf)
 	)
-	(retract ?p)
-	(retract ?m)
 )
 
 ;;; K4: If zero negative blood is administered at time T but at time T + 5 minutes fibrinogen or tranexamic acid are not yet administered, then the missing drugs have to be administered.
 (defrule Alerta::K4 "Rule K4"
-	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?m <- (Medicamentos (patient-id ?id)(first_0_negative_blood_unit ?fznegative)(tranaxemid_acid ?tra)(fibrinogen ?fib))
 	=>
 	(if (and (eq ?tra no)(>= ?fznegative 5))
-			then (printout t "!!! ALERT: Apply Treatment number 4: Administer tranaxemic acid to patient " ?id "." crlf)
+			then (printout t "!!! ALERT K4: Apply Treatment number 4: Administer tranaxemic acid to patient " ?id "." crlf)
 	)
 	(if (and (eq ?fib no)(>= ?fznegative 5))
-			then (printout t "!!! ALERT: Apply Treatment number 5: Administer fibrinogen to patient " ?id "." crlf)
+			then (printout t "!!! ALERT K4: Apply Treatment number 5: Administer fibrinogen to patient " ?id "." crlf)
 	)
-	(retract ?p)
-	(retract ?m)
 )				
 
 ;;; K5: When a tourniquet, REBOA, or thoracotomy technique is applied, 
 ;;; the clinician must be notified every 15 minutes about the time passed since the application.
 (defrule Alerta::K5 "Rule K5"
-	(declare (salience 10))
 	?p <- (Paciente (id ?id))
 	?t <- (Tratamientos (patient-id ?id)(thoracotomy_applied ?th))
 	=>
-	(if (eq ?th 0)
-			then (printout t "!!! ALERT: Notify every 15 minutes about the time passed since the application of tourniquet to patient ." ?id "." crlf)
+	(if (> ?th 0)
+			then (printout t "!!! ALERT K5: Notify every 15 minutes about the time passed since the application of tourniquet to patient ." ?id "." crlf)
 	)
-	(retract ?p)
-	(retract ?t)
 )	
 
 
